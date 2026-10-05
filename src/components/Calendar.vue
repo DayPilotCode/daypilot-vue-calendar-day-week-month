@@ -2,6 +2,7 @@
   <div style="display: flex">
     <div style="margin-right: 10px">
       <DayPilotNavigator
+          id="navigator"
           :selectMode="viewType"
           :showMonths="3"
           :skipMonths="3"
@@ -15,13 +16,15 @@
         <button @click="viewType='Month'" :class="{ selected: viewType === 'Month' }">Month</button>
       </div>
       <DayPilotCalendar
+          id="day"
           :viewType="'Day'"
           :startDate="startDate"
           :visible="viewType === 'Day'"
           :events="events"
           @beforeEventRender="onBeforeEventRender"
           @timeRangeSelected="onTimeRangeSelected"
-          ref="dayRef"
+          @eventMove="onEventMove"
+          @eventResize="onEventResize"
       >
         <template #event="{event}">
           <CalendarEvent
@@ -32,6 +35,7 @@
         </template>
       </DayPilotCalendar>
       <DayPilotCalendar
+          id="week"
           :viewType="'Week'"
           :startDate="startDate"
           :visible="viewType === 'Week'"
@@ -40,7 +44,8 @@
           :durationBarVisible="false"
           @beforeEventRender="onBeforeEventRender"
           @timeRangeSelected="onTimeRangeSelected"
-          ref="weekRef"
+          @eventMove="onEventMove"
+          @eventResize="onEventResize"
       >
         <template #event="{event}">
           <CalendarEvent
@@ -51,12 +56,14 @@
         </template>
       </DayPilotCalendar>
       <DayPilotMonth
+          id="month"
           :startDate="startDate"
           :visible="viewType === 'Month'"
           :events="events"
           @beforeEventRender="onBeforeEventRender"
           @timeRangeSelected="onTimeRangeSelected"
-          ref="monthRef"
+          @eventMove="onEventMove"
+          @eventResize="onEventResize"
       >
         <template #event="{event}">
           <CalendarEvent
@@ -81,21 +88,17 @@ const events = ref([]);
 const viewType = ref("Week");
 const startDate = ref(DayPilot.Date.today());
 
-const dayRef = ref(null);
-const weekRef = ref(null);
-const monthRef = ref(null);
-
 const onTimeRangeSelected = async (args) => {
   const modal = await DayPilot.Modal.prompt("Create a new event:", "Event 1");
   const calendar = args.control;
   calendar.clearSelection();
   if (modal.canceled) { return; }
-  calendar.events.add({
+  events.value = [...events.value, {
     start: args.start,
     end: args.end,
     id: DayPilot.guid(),
     text: modal.result
-  });
+  }];
 };
 
 const onBeforeEventRender = (args) => {
@@ -122,14 +125,29 @@ const onEventEdit = async  (event) => {
   if (modal.canceled) {
     return;
   }
-  event.data.text = modal.result.text;
-  event.data.color = modal.result.color;
+  events.value = events.value.map(e => e.id === event.id()
+      ? {...e, text: modal.result.text, color: modal.result.color}
+      : e);
 };
 
 const onEventDelete = (event) => {
   const data = event.data;
   events.value = events.value.filter(e => e.id !== data.id);
 }
+
+const onEventMove = (args) => {
+  args.preventDefault();
+  events.value = events.value.map(e => e.id === args.e.id()
+      ? {...e, start: args.newStart, end: args.newEnd}
+      : e);
+};
+
+const onEventResize = (args) => {
+  args.preventDefault();
+  events.value = events.value.map(e => e.id === args.e.id()
+      ? {...e, start: args.newStart, end: args.newEnd}
+      : e);
+};
 
 const loadEvents = () => {
   const firstDay = DayPilot.Date.today().firstDayOfWeek().addDays(1);

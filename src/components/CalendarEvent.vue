@@ -1,11 +1,11 @@
 <template>
-  <div :class="['event-header', { 'use-header': useHeader }]">
+  <div :data-event-id="event.id()" :class="['event-header', { 'use-header': useHeader }]">
     {{ event.text() }}
     <span>
-      <svg @click="handleDelete">
+      <svg @click.stop="handleDelete" aria-label="Delete event" role="button" tabindex="0" @keydown.enter.stop="handleDelete">
         <use href="/icons/daypilot.svg#x-2"></use>
       </svg>
-      <svg @click="handleEdit">
+      <svg @click.stop="handleEdit" aria-label="Edit event" role="button" tabindex="0" @keydown.enter.stop="handleEdit">
         <use href="/icons/daypilot.svg#edit"></use>
       </svg>
     </span>
